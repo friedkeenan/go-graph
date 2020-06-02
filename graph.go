@@ -141,7 +141,7 @@ func (g *Graph) PixelToCoord(pt image.Point) *Coord {
 }
 
 func (g *Graph) SetPixel(pt image.Point, col color.Color) {
-    g.Image.Set(pt.X, pt.Y, col)
+    g.Image.Set(pt.X, pt.Y, BlendColor(g.Image.At(pt.X, pt.Y), col))
 }
 
 func (g *Graph) SetCoord(c *Coord, col color.Color) {
