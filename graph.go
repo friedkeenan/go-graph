@@ -79,6 +79,10 @@ func (c *Coord) Polar() (r, theta float64) {
     r = c.DistOrigin()
     theta = math.Atan2(c.Y, c.X)
 
+    if theta < 0 {
+        theta += 2 * math.Pi
+    }
+
     return
 }
 
