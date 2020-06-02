@@ -4,6 +4,7 @@ import (
     "os"
     "log"
     "math"
+    "math/cmplx"
     "image/color"
 )
 
@@ -34,6 +35,10 @@ func main() {
     g.DrawDiffExpressionWithColor(func (c *Coord) float64 {
         return c.Y - math.Pow(math.E, -c.X)
     }, color.RGBA{0x00, 0xFF, 0x80, 0xFF})
+
+    g.ApplyComplexExpression(func (z complex128) complex128 {
+        return cmplx.Pow(z, complex(2, 0)) / 5
+    })
 
     f, err := os.Create("out.png")
     if err != nil {

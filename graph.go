@@ -22,8 +22,9 @@ type Coord struct {
     X, Y float64
 }
 
-type DiffExpression func(c *Coord) float64
-type BoolExpression func(c *Coord) bool
+type DiffExpression    func (c *Coord) float64
+type BoolExpression    func (c *Coord) bool
+type ComplexExpression func (z complex128) complex128
 
 type Area struct {
     Pos0, Pos1 *Coord
@@ -98,6 +99,10 @@ func (a *Area) Center() *Coord {
     return NewCoord(a.CenterX(), a.CenterY())
 }
 
+func (a *Area) Contains(c *Coord) bool {
+    return a.Pos0.X <= c.X && c.X < a.Pos1.X && a.Pos0.Y >= c.Y && c.Y > a.Pos1.Y
+}
+
 func NewGraph(bounds *Area, im_width, im_height int) *Graph {
     g := Graph{}
 
@@ -147,6 +152,15 @@ func (g *Graph) SetPixel(pt image.Point, col color.Color) {
 func (g *Graph) SetCoord(c *Coord, col color.Color) {
     pt := g.CoordToPixel(c)
     g.SetPixel(pt, col)
+}
+
+func (g *Graph) AtPixel(pt image.Point) color.Color {
+    return g.Image.At(pt.X, pt.Y)
+}
+
+func (g *Graph) AtCoord(c *Coord) color.Color {
+    pt := g.CoordToPixel(c)
+    return g.AtPixel(pt)
 }
 
 func (g *Graph) DrawLine(c0, c1 *Coord, col color.Color) {
@@ -274,4 +288,50 @@ func (g *Graph) DrawDiffExpressionWithColor(expr DiffExpression, col color.Color
 
 func (g *Graph) DrawDiffExpression(expr DiffExpression) {
     g.DrawDiffExpressionWithColor(expr, ExpressionColor)
+}
+
+func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image.RGBA, r *image.Rectangle, ch chan struct {}) {
+    for x := r.Min.X; x < r.Max.X; x++ {
+        for y := r.Min.Y; y < r.Max.Y; y++ {
+            pt := image.Pt(x, y)
+            c := g.PixelToCoord(pt)
+            z := complex(c.X, c.Y)
+
+            new_z := expr(z)
+            new_c := NewCoord(real(new_z), imag(new_z))
+
+            if g.Bounds.Contains(new_c) {
+                new_pt := g.CoordToPixel(new_c)
+                col := g.AtPixel(pt)
+                dst.Set(new_pt.X, new_pt.Y, col)
+            }
+        }
+    }
+
+    ch <- struct {}{}
+}
+
+func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
+    img := image.NewRGBA(g.Image.Bounds())
+    for i, _ := range g.Image.Pix {
+        img.Pix[i] = 0xFF
+    }
+
+    var channels []chan struct {}
+
+    for x := 0; x < g.ImageWidth(); x += ChunkSize {
+        for y := 0; y < g.ImageHeight(); y += ChunkSize {
+            ch := make(chan struct {})
+            channels = append(channels, ch)
+
+            r := image.Rect(x, y, MinInt(x + ChunkSize, g.ImageWidth()), MinInt(y + ChunkSize, g.ImageHeight()))
+            go g.ApplyComplexExpressionInChunk(expr, img, &r, ch)
+        }
+    }
+
+    for _, ch := range channels {
+        <-ch
+    }
+
+    g.Image = img
 }
