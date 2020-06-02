@@ -33,9 +33,9 @@ func main() {
         return c.Y - math.Pow(math.E, -c.X)
     }, color.RGBA{0x00, 0xFF, 0x80, 0xFF})
 
-    g.DrawDiffExpression(RotateDiffExpression(func (c *Coord) float64 {
-        return math.Pow(c.X / 5, 2) + math.Pow(c.Y / 3, 2) - 1
-    }, math.Pi / 4))
+    g.DrawDiffExpression(ScaleDiffExpressionPerAxis(func (c *Coord) float64 {
+        return math.Pow(c.X, 2) + math.Pow(c.Y, 2) - 1
+    }, 5, 3))
 
     f, err := os.Create("out.png")
     if err != nil {
