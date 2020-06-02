@@ -39,6 +39,10 @@ func NewCoord(x, y float64) *Coord {
     return &Coord{x, y}
 }
 
+func NewCoordFromPolar(r, theta float64) *Coord {
+    return NewCoord(r * math.Cos(theta), r * math.Sin(theta))
+}
+
 func (c *Coord) Equals(other *Coord) bool {
     return c.X == other.X && c.Y == other.Y
 }
@@ -69,6 +73,86 @@ func (c *Coord) DistOrigin() float64 {
 
 func (c *Coord) WithinDist(other *Coord, dist float64) bool {
     return c.Dist(other) <= dist
+}
+
+func (c *Coord) Polar() (r, theta float64) {
+    r = c.DistOrigin()
+    theta = math.Atan2(c.Y, c.X)
+
+    return
+}
+
+func (c *Coord) Rotate(theta float64) *Coord {
+    r, t := c.Polar()
+
+    return NewCoordFromPolar(r, t + theta)
+}
+
+func (c *Coord) RotateAround(theta float64, other *Coord) *Coord {
+    return c.Sub(other).Rotate(theta).Add(other)
+}
+
+func RotateBoolExpression(expr BoolExpression, theta float64) BoolExpression {
+    return func (c *Coord) bool {
+        c = c.Rotate(-theta)
+
+        return expr(c)
+    }
+}
+
+func RotateBoolExpressionAround(expr BoolExpression, theta float64, coord *Coord) BoolExpression {
+    return func (c *Coord) bool {
+        c = c.RotateAround(-theta, coord)
+
+        return expr(c)
+    }
+}
+
+func RotateDiffExpression(expr DiffExpression, theta float64) DiffExpression {
+    return func (c *Coord) float64 {
+        c = c.Rotate(-theta)
+
+        return expr(c)
+    }
+}
+
+func RotateDiffExpressionAround(expr DiffExpression, theta float64, coord *Coord) DiffExpression {
+    return func (c *Coord) float64 {
+        c = c.RotateAround(-theta, coord)
+
+        return expr(c)
+    }
+}
+
+func (expr DiffExpression) ToBool(g *Graph) BoolExpression {
+    return func (c *Coord) bool {
+        pt := g.CoordToPixel(c)
+        coords := [4]*Coord {
+            c,
+            g.PixelToCoord(pt.Add(image.Pt(1, 0))),
+            g.PixelToCoord(pt.Add(image.Pt(0, 1))),
+            g.PixelToCoord(pt.Add(image.Pt(1, 1))),
+        }
+
+        diff := [4]float64 {
+            expr(coords[0]),
+            expr(coords[1]),
+            expr(coords[2]),
+            expr(coords[3]),
+        }
+
+        if diff[0] == 0 {
+            return true
+        }
+
+        for _, d := range diff {
+            if (diff[0] > 0 && d < 0) || (diff[0] < 0 && d > 0) {
+                return true
+            }
+        }
+
+        return false
+    }
 }
 
 func NewArea(x0, y0, x1, y1 float64) *Area {
@@ -256,34 +340,7 @@ func (g *Graph) DrawBoolExpression(expr BoolExpression) {
 }
 
 func (g *Graph) DrawDiffExpressionWithColor(expr DiffExpression, col color.Color) {
-    g.DrawBoolExpressionWithColor(func (c *Coord) bool {
-        pt := g.CoordToPixel(c)
-        coords := [4]*Coord {
-            c,
-            g.PixelToCoord(pt.Add(image.Pt(1, 0))),
-            g.PixelToCoord(pt.Add(image.Pt(0, 1))),
-            g.PixelToCoord(pt.Add(image.Pt(1, 1))),
-        }
-
-        diff := [4]float64 {
-            expr(coords[0]),
-            expr(coords[1]),
-            expr(coords[2]),
-            expr(coords[3]),
-        }
-
-        if diff[0] == 0 {
-            return true
-        }
-
-        for _, d := range diff {
-            if (diff[0] > 0 && d < 0) || (diff[0] < 0 && d > 0) {
-                return true
-            }
-        }
-
-        return false
-    }, col)
+    g.DrawBoolExpressionWithColor(expr.ToBool(g), col)
 }
 
 func (g *Graph) DrawDiffExpression(expr DiffExpression) {
