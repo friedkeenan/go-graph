@@ -24,13 +24,13 @@ func MinInt(a, b int) int {
 }
 
 func BlendColor(old, new color.Color) color.Color {
-    old_r, old_g, old_b, old_a := old.RGBA()
+    old_r, old_g, old_b, _ := old.RGBA()
     new_r, new_g, new_b, new_a := new.RGBA()
 
     return RGBA16{
-        uint16((new_a * new_r + (0xFFFF - old_a) * old_r) / 0xFFFF),
-        uint16((new_a * new_g + (0xFFFF - old_a) * old_g) / 0xFFFF),
-        uint16((new_a * new_b + (0xFFFF - old_a) * old_b) / 0xFFFF),
+        uint16((new_a * new_r + (0xFFFF - new_a) * old_r) / 0xFFFF),
+        uint16((new_a * new_g + (0xFFFF - new_a) * old_g) / 0xFFFF),
+        uint16((new_a * new_b + (0xFFFF - new_a) * old_b) / 0xFFFF),
         0xFFFF,
     }
 }
