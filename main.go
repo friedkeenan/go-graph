@@ -2,6 +2,7 @@ package main
 
 import (
     "os"
+    "strings"
     "log"
 )
 
@@ -10,12 +11,21 @@ func main() {
     g.DrawGrid()
 
     for i := 1; i < len(os.Args); i++ {
-        expr, err := EvalDiffExpression(os.Args[i])
-        if err != nil {
-            log.Fatal(err)
-        }
+        if strings.Contains(os.Args[i], "==") {
+            expr, err := EvalDiffExpression(os.Args[i])
+            if err != nil {
+                log.Fatal(err)
+            }
 
-        g.DrawDiffExpression(expr)
+            g.DrawDiffExpression(expr)
+        } else {
+            expr, err := EvalBoolExpression(os.Args[i])
+            if err != nil {
+                log.Fatal(err)
+            }
+
+            g.DrawBoolExpression(expr)
+        }
     }
 
     f, err := os.Create("out.png")
