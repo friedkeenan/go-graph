@@ -276,7 +276,7 @@ func (g *Graph) DrawExpressionInChunk(expr Expression, r *image.Rectangle, col c
                     for _, d := range diff {
                         if (ret.(float64) > 0 && d < 0) || (ret.(float64) < 0 && d > 0) {
                             g.SetPixel(pt, col)
-                            continue
+                            break
                         }
                     }
             }
