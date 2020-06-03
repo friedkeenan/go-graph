@@ -67,6 +67,14 @@ func RotateBoolExpressionAround(expr BoolExpression, theta float64, coord *Coord
     }
 }
 
+func InvertBoolExpression(expr BoolExpression) BoolExpression {
+    return func (c *Coord) bool {
+        c = NewCoord(c.Y, c.X)
+
+        return expr(c)
+    }
+}
+
 func OffsetDiffExpression(expr DiffExpression, off *Coord) DiffExpression {
     return func (c *Coord) float64 {
         c = c.Sub(off)
@@ -120,6 +128,14 @@ func RotateDiffExpression(expr DiffExpression, theta float64) DiffExpression {
 func RotateDiffExpressionAround(expr DiffExpression, theta float64, coord *Coord) DiffExpression {
     return func (c *Coord) float64 {
         c = c.RotateAround(-theta, coord)
+
+        return expr(c)
+    }
+}
+
+func InvertDiffExpression(expr DiffExpression) DiffExpression {
+    return func (c *Coord) float64 {
+        c = NewCoord(c.Y, c.X)
 
         return expr(c)
     }

@@ -7,9 +7,9 @@ type RGBA16 struct {
 }
 
 func (c RGBA16) RGBA() (r, g, b, a uint32) {
-    r = uint32(c.r)
-    g = uint32(c.g)
-    b = uint32(c.b)
+    r = uint32(float64(c.r) * float64(c.a) / 0xFFFF)
+    g = uint32(float64(c.g) * float64(c.a) / 0xFFFF)
+    b = uint32(float64(c.b) * float64(c.a) / 0xFFFF)
     a = uint32(c.a)
 
     return

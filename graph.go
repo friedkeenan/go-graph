@@ -159,11 +159,11 @@ func (a *Area) Contains(c *Coord) bool {
     return a.Pos0.X <= c.X && c.X < a.Pos1.X && a.Pos0.Y >= c.Y && c.Y > a.Pos1.Y
 }
 
-func NewGraph(bounds *Area, im_width, im_height int) *Graph {
+func NewGraph(bounds *Area, scale float64) *Graph {
     g := Graph{}
 
     g.Bounds = bounds
-    g.Image = image.NewRGBA(image.Rect(0, 0, im_width, im_height))
+    g.Image = image.NewRGBA(image.Rect(0, 0, int(bounds.Width() * scale), int(bounds.Height() * scale)))
 
     for i, _ := range g.Image.Pix {
         g.Image.Pix[i] = 0xFF
@@ -177,11 +177,11 @@ func (g *Graph) SavePNG(w io.Writer) error {
 }
 
 func (g *Graph) ImageWidth() int {
-    return g.Image.Bounds().Max.X - g.Image.Bounds().Min.X
+    return g.Image.Bounds().Dx()
 }
 
 func (g *Graph) ImageHeight() int {
-    return g.Image.Bounds().Max.Y - g.Image.Bounds().Min.Y
+    return g.Image.Bounds().Dy()
 }
 
 func (g *Graph) CoordToPixel(c *Coord) image.Point {
@@ -250,7 +250,7 @@ func (g *Graph) DrawLine(c0, c1 *Coord, col color.Color) {
         for x := p0.X; x <= p1.X; x++ {
             y := int(slope * float64(x)) + yint
 
-            g.Image.Set(x, y, col)
+            g.SetPixel(image.Pt(x, y), col)
         }
     }
 }
