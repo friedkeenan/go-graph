@@ -36,7 +36,6 @@ func main() {
             if err == nil {
                 arg_swallowed = true
             } else {
-                log.Fatal(err)
                 col = ExpressionColor
             }
         }
