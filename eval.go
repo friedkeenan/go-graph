@@ -109,69 +109,69 @@ func (e NoEqualityError) Error() string {
     return "No equality in expression"
 }
 
-func EvalBoolExpression(expr string) (BoolExpression, error) {
-    e, err := govaluate.NewEvaluableExpressionWithFunctions(expr, Functions)
-    if err != nil {
-        return nil, err
-    }
-
-    return func (c *Coord) bool {
-        params := map[string]interface{} {
-            "x": c.X,
-            "y": c.Y,
-        }
-        params["r"], params["theta"] = c.Polar()
-
-        for k, v := range Constants {
-            params[k] = v
+func EvalExpression(expr string) (Expression, error) {
+    if strings.Contains(expr, "==") {
+        sides := strings.Split(expr, "==")
+        if len(sides) != 2 {
+            return nil, NoEqualityError{}
         }
 
-        result, err := e.Evaluate(params)
+        e0, err := govaluate.NewEvaluableExpressionWithFunctions(sides[0], Functions)
         if err != nil {
-            log.Fatal(err)
+            return nil, err
         }
 
-        return result.(bool)
-    }, nil
-}
-
-func EvalDiffExpression(expr string) (DiffExpression, error) {
-    sides := strings.Split(expr, "==")
-    if len(sides) != 2 {
-        return nil, NoEqualityError{}
-    }
-
-    e0, err := govaluate.NewEvaluableExpressionWithFunctions(sides[0], Functions)
-    if err != nil {
-        return nil, err
-    }
-
-    e1, err := govaluate.NewEvaluableExpressionWithFunctions(sides[1], Functions)
-    if err != nil {
-        return nil, err
-    }
-
-    return func (c *Coord) float64 {
-        params := map[string]interface{} {
-            "x": c.X,
-            "y": c.Y,
-        }
-        params["r"], params["theta"] = c.Polar()
-
-        for k, v := range Constants {
-            params[k] = v
-        }
-
-        result0, err := e0.Evaluate(params)
+        e1, err := govaluate.NewEvaluableExpressionWithFunctions(sides[1], Functions)
         if err != nil {
-            log.Fatal(err)
+            return nil, err
         }
 
-        result1, err := e1.Evaluate(params)
+        return func (c *Coord) interface{} {
+            params := map[string]interface{} {
+                "x": c.X,
+                "y": c.Y,
+            }
+            params["r"], params["theta"] = c.Polar()
+
+            for k, v := range Constants {
+                params[k] = v
+            }
+
+            result0, err := e0.Evaluate(params)
+            if err != nil {
+                log.Fatal(err)
+            }
+
+            result1, err := e1.Evaluate(params)
+            if err != nil {
+                log.Fatal(err)
+            }
+
+            return result0.(float64) - result1.(float64)
+        }, nil
+    } else {
+        e, err := govaluate.NewEvaluableExpressionWithFunctions(expr, Functions)
         if err != nil {
-            log.Fatal(err)
+            return nil, err
         }
 
-        return result0.(float64) - result1.(float64)
-    }, nil
+        return func (c *Coord) interface{} {
+            params := map[string]interface{} {
+                "x": c.X,
+                "y": c.Y,
+            }
+            params["r"], params["theta"] = c.Polar()
+
+            for k, v := range Constants {
+                params[k] = v
+            }
+
+            result, err := e.Evaluate(params)
+            if err != nil {
+                log.Fatal(err)
+            }
+
+            return result
+        }, nil
+    }
 }

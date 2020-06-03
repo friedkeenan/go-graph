@@ -9,40 +9,40 @@ const (
     MaxIterations = 200
 )
 
-func OffsetBoolExpression(expr BoolExpression, off *Coord) BoolExpression {
-    return func (c *Coord) bool {
+func OffsetExpression(expr Expression, off *Coord) Expression {
+    return func (c *Coord) interface{} {
         c = c.Sub(off)
 
         return expr(c)
     }
 }
 
-func ScaleBoolExpression(expr BoolExpression, scale float64) BoolExpression {
-    return func (c *Coord) bool {
+func ScaleExpression(expr Expression, scale float64) Expression {
+    return func (c *Coord) interface{} {
         c = c.Div(scale)
 
         return expr(c)
     }
 }
 
-func ScaleBoolExpressionAround(expr BoolExpression, scale float64, coord *Coord) BoolExpression {
-    return func (c *Coord) bool {
+func ScaleExpressionAround(expr Expression, scale float64, coord *Coord) Expression {
+    return func (c *Coord) interface{} {
         c = c.Sub(coord).Div(scale).Add(coord)
 
         return expr(c)
     }
 }
 
-func ScaleBoolExpressionPerAxis(expr BoolExpression, scale_x, scale_y float64) BoolExpression {
-    return func (c *Coord) bool {
+func ScaleExpressionPerAxis(expr Expression, scale_x, scale_y float64) Expression {
+    return func (c *Coord) interface{} {
         c = NewCoord(c.X / scale_x, c.Y / scale_y)
 
         return expr(c)
     }
 }
 
-func ScaleBoolExpressionPerAxisAround(expr BoolExpression, scale_x, scale_y float64, coord *Coord) BoolExpression {
-    return func (c *Coord) bool {
+func ScaleExpressionPerAxisAround(expr Expression, scale_x, scale_y float64, coord *Coord) Expression {
+    return func (c *Coord) interface{} {
         c = c.Sub(coord)
         c = NewCoord(c.X / scale_x, c.Y / scale_y)
         c = c.Add(coord)
@@ -51,97 +51,31 @@ func ScaleBoolExpressionPerAxisAround(expr BoolExpression, scale_x, scale_y floa
     }
 }
 
-func RotateBoolExpression(expr BoolExpression, theta float64) BoolExpression {
-    return func (c *Coord) bool {
+func RotateExpression(expr Expression, theta float64) Expression {
+    return func (c *Coord) interface{} {
         c = c.Rotate(-theta)
 
         return expr(c)
     }
 }
 
-func RotateBoolExpressionAround(expr BoolExpression, theta float64, coord *Coord) BoolExpression {
-    return func (c *Coord) bool {
+func RotateExpressionAround(expr Expression, theta float64, coord *Coord) Expression {
+    return func (c *Coord) interface{} {
         c = c.RotateAround(-theta, coord)
 
         return expr(c)
     }
 }
 
-func InvertBoolExpression(expr BoolExpression) BoolExpression {
-    return func (c *Coord) bool {
+func InvertExpression(expr Expression) Expression {
+    return func (c *Coord) interface{} {
         c = NewCoord(c.Y, c.X)
 
         return expr(c)
     }
 }
 
-func OffsetDiffExpression(expr DiffExpression, off *Coord) DiffExpression {
-    return func (c *Coord) float64 {
-        c = c.Sub(off)
-
-        return expr(c)
-    }
-}
-
-func ScaleDiffExpression(expr DiffExpression, scale float64) DiffExpression {
-    return func (c *Coord) float64 {
-        c = c.Div(scale)
-
-        return expr(c)
-    }
-}
-
-func ScaleDiffExpressionAround(expr DiffExpression, scale float64, coord *Coord) DiffExpression {
-    return func (c *Coord) float64 {
-        c = c.Sub(coord).Div(scale).Add(coord)
-
-        return expr(c)
-    }
-}
-
-func ScaleDiffExpressionPerAxis(expr DiffExpression, scale_x, scale_y float64) DiffExpression {
-    return func (c *Coord) float64 {
-        c = NewCoord(c.X / scale_x, c.Y / scale_y)
-
-        return expr(c)
-    }
-}
-
-func ScaleDiffExpressionPerAxisAround(expr DiffExpression, scale_x, scale_y float64, coord *Coord) DiffExpression {
-    return func (c *Coord) float64 {
-        c = c.Sub(coord)
-        c = NewCoord(c.X / scale_x, c.Y / scale_y)
-        c = c.Add(coord)
-
-        return expr(c)
-    }
-}
-
-func RotateDiffExpression(expr DiffExpression, theta float64) DiffExpression {
-    return func (c *Coord) float64 {
-        c = c.Rotate(-theta)
-
-        return expr(c)
-    }
-}
-
-func RotateDiffExpressionAround(expr DiffExpression, theta float64, coord *Coord) DiffExpression {
-    return func (c *Coord) float64 {
-        c = c.RotateAround(-theta, coord)
-
-        return expr(c)
-    }
-}
-
-func InvertDiffExpression(expr DiffExpression) DiffExpression {
-    return func (c *Coord) float64 {
-        c = NewCoord(c.Y, c.X)
-
-        return expr(c)
-    }
-}
-
-func Mandelbrot(c *Coord) bool {
+func Mandelbrot(c *Coord) interface{} {
     seed := complex(c.X, c.Y)
     z := complex(0, 0)
 
@@ -156,22 +90,22 @@ func Mandelbrot(c *Coord) bool {
     return true
 }
 
-func UnitCircle(c *Coord) float64 {
+func UnitCircle(c *Coord) interface{} {
     return math.Pow(c.X, 2) + math.Pow(c.Y, 2) - 1
 }
 
-func Circle(r float64) DiffExpression {
-    return ScaleDiffExpression(UnitCircle, r)
+func Circle(r float64) Expression {
+    return ScaleExpression(UnitCircle, r)
 }
 
-func CircleAt(r float64, center *Coord) DiffExpression {
-    return OffsetDiffExpression(Circle(r), center)
+func CircleAt(r float64, center *Coord) Expression {
+    return OffsetExpression(Circle(r), center)
 }
 
-func Ellipse(a, b float64) DiffExpression {
-    return ScaleDiffExpressionPerAxis(UnitCircle, a, b)
+func Ellipse(a, b float64) Expression {
+    return ScaleExpressionPerAxis(UnitCircle, a, b)
 }
 
-func EllipseAt(a, b float64, center *Coord) DiffExpression {
-    return OffsetDiffExpression(Ellipse(a, b), center)
+func EllipseAt(a, b float64, center *Coord) Expression {
+    return OffsetExpression(Ellipse(a, b), center)
 }

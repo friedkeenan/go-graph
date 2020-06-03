@@ -3,9 +3,7 @@ package main
 import (
     "os"
     "fmt"
-    "strings"
     "log"
-    "image/color"
 )
 
 func main() {
@@ -29,7 +27,7 @@ func main() {
     g.DrawGrid()
 
     for i := 3; i < len(os.Args); i++ {
-        col := color.RGBA{0, 0, 0, 0xFF}
+        col := ExpressionColor
         arg_swallowed := false
 
         if i < len(os.Args) - 1 && os.Args[i + 1][0] == '#' {
@@ -39,25 +37,16 @@ func main() {
                 arg_swallowed = true
             } else {
                 log.Fatal(err)
-                col = color.RGBA{0, 0, 0, 0xFF}
+                col = ExpressionColor
             }
         }
 
-        if strings.Contains(os.Args[i], "==") {
-            expr, err := EvalDiffExpression(os.Args[i])
-            if err != nil {
-                log.Fatal(err)
-            }
-
-            g.DrawDiffExpressionWithColor(expr, col)
-        } else {
-            expr, err := EvalBoolExpression(os.Args[i])
-            if err != nil {
-                log.Fatal(err)
-            }
-
-            g.DrawBoolExpressionWithColor(expr, col)
+        expr, err := EvalExpression(os.Args[i])
+        if err != nil {
+            log.Fatal(err)
         }
+
+        g.DrawExpressionWithColor(expr, col)
 
         if arg_swallowed {
             i++

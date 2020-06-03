@@ -13,17 +13,17 @@ const (
 )
 
 var (
-    AxisColor       = color.RGBA{0xFF, 0, 0, 0xFF}
-    GridColor       = color.Gray{0xE0}
-    ExpressionColor = color.Gray{0x00}
+    AxisColor       = color.RGBA{0xFF, 0x00, 0x00, 0xFF}
+    GridColor       = color.RGBA{0xE0, 0xE0, 0xE0, 0xFF}
+    ExpressionColor = color.RGBA{0x00, 0x00, 0x00, 0xFF}
 )
 
 type Coord struct {
     X, Y float64
 }
 
-type DiffExpression    func (c *Coord) float64
-type BoolExpression    func (c *Coord) bool
+type Expression func (c *Coord) interface{}
+
 type ComplexExpression func (z complex128) complex128
 
 type Area struct {
@@ -94,37 +94,6 @@ func (c *Coord) Rotate(theta float64) *Coord {
 
 func (c *Coord) RotateAround(theta float64, other *Coord) *Coord {
     return c.Sub(other).Rotate(theta).Add(other)
-}
-
-func (expr DiffExpression) ToBool(g *Graph) BoolExpression {
-    return func (c *Coord) bool {
-        pt := g.CoordToPixel(c)
-        coords := [4]*Coord {
-            c,
-            g.PixelToCoord(pt.Add(image.Pt(1, 0))),
-            g.PixelToCoord(pt.Add(image.Pt(0, 1))),
-            g.PixelToCoord(pt.Add(image.Pt(1, 1))),
-        }
-
-        diff := [4]float64 {
-            expr(coords[0]),
-            expr(coords[1]),
-            expr(coords[2]),
-            expr(coords[3]),
-        }
-
-        if diff[0] == 0 {
-            return true
-        }
-
-        for _, d := range diff {
-            if (diff[0] > 0 && d < 0) || (diff[0] < 0 && d > 0) {
-                return true
-            }
-        }
-
-        return false
-    }
 }
 
 func NewArea(x0, y0, x1, y1 float64) *Area {
@@ -274,14 +243,42 @@ func (g *Graph) DrawGrid() {
     g.DrawAxes()
 }
 
-func (g *Graph) DrawBoolExpressionInChunk(expr BoolExpression, r *image.Rectangle, col color.Color, ch chan struct{}) {
+func (g *Graph) DrawExpressionInChunk(expr Expression, r *image.Rectangle, col color.Color, ch chan struct{}) {
     for x := r.Min.X; x < r.Max.X; x++ {
         for y := r.Min.Y; y < r.Max.Y; y++ {
             pt := image.Pt(x, y)
             c := g.PixelToCoord(pt)
 
-            if expr(c) {
-                g.SetPixel(pt, col)
+            switch ret := expr(c); ret.(type) {
+                case bool:
+                    if ret.(bool) {
+                        g.SetPixel(pt, col)
+                    }
+
+                case float64:
+                    coords := [3]*Coord {
+                        g.PixelToCoord(pt.Add(image.Pt(1, 0))),
+                        g.PixelToCoord(pt.Add(image.Pt(0, 1))),
+                        g.PixelToCoord(pt.Add(image.Pt(1, 1))),
+                    }
+
+                    diff := [3]float64 {
+                        expr(coords[0]).(float64),
+                        expr(coords[1]).(float64),
+                        expr(coords[2]).(float64),
+                    }
+
+                    if ret.(float64) == 0 {
+                        g.SetPixel(pt, col)
+                        continue
+                    }
+
+                    for _, d := range diff {
+                        if (ret.(float64) > 0 && d < 0) || (ret.(float64) < 0 && d > 0) {
+                            g.SetPixel(pt, col)
+                            continue
+                        }
+                    }
             }
         }
     }
@@ -289,7 +286,7 @@ func (g *Graph) DrawBoolExpressionInChunk(expr BoolExpression, r *image.Rectangl
     ch <- struct{}{}
 }
 
-func (g *Graph) DrawBoolExpressionWithColor(expr BoolExpression, col color.Color) {
+func (g *Graph) DrawExpressionWithColor(expr Expression, col color.Color) {
     var channels []chan struct{}
 
     for x := 0; x < g.ImageWidth(); x += ChunkSize {
@@ -298,7 +295,7 @@ func (g *Graph) DrawBoolExpressionWithColor(expr BoolExpression, col color.Color
             channels = append(channels, ch)
 
             r := image.Rect(x, y, MinInt(x + ChunkSize, g.ImageWidth()), MinInt(y + ChunkSize, g.ImageHeight()))
-            go g.DrawBoolExpressionInChunk(expr, &r, col, ch)
+            go g.DrawExpressionInChunk(expr, &r, col, ch)
         }
     }
 
@@ -307,16 +304,8 @@ func (g *Graph) DrawBoolExpressionWithColor(expr BoolExpression, col color.Color
     }
 }
 
-func (g *Graph) DrawBoolExpression(expr BoolExpression) {
-    g.DrawBoolExpressionWithColor(expr, ExpressionColor)
-}
-
-func (g *Graph) DrawDiffExpressionWithColor(expr DiffExpression, col color.Color) {
-    g.DrawBoolExpressionWithColor(expr.ToBool(g), col)
-}
-
-func (g *Graph) DrawDiffExpression(expr DiffExpression) {
-    g.DrawDiffExpressionWithColor(expr, ExpressionColor)
+func (g *Graph) DrawExpression(expr Expression) {
+    g.DrawExpressionWithColor(expr, ExpressionColor)
 }
 
 func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image.RGBA, r *image.Rectangle, ch chan struct{}) {
