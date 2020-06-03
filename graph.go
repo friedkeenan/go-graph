@@ -274,7 +274,7 @@ func (g *Graph) DrawGrid() {
     g.DrawAxes()
 }
 
-func (g *Graph) DrawBoolExpressionInChunk(expr BoolExpression, r *image.Rectangle, col color.Color, ch chan struct {}) {
+func (g *Graph) DrawBoolExpressionInChunk(expr BoolExpression, r *image.Rectangle, col color.Color, ch chan struct{}) {
     for x := r.Min.X; x < r.Max.X; x++ {
         for y := r.Min.Y; y < r.Max.Y; y++ {
             pt := image.Pt(x, y)
@@ -286,11 +286,11 @@ func (g *Graph) DrawBoolExpressionInChunk(expr BoolExpression, r *image.Rectangl
         }
     }
 
-    ch <- struct {}{}
+    ch <- struct{}{}
 }
 
 func (g *Graph) DrawBoolExpressionWithColor(expr BoolExpression, col color.Color) {
-    var channels []chan struct {}
+    var channels []chan struct{}
 
     for x := 0; x < g.ImageWidth(); x += ChunkSize {
         for y := 0; y < g.ImageHeight(); y += ChunkSize {
@@ -319,7 +319,7 @@ func (g *Graph) DrawDiffExpression(expr DiffExpression) {
     g.DrawDiffExpressionWithColor(expr, ExpressionColor)
 }
 
-func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image.RGBA, r *image.Rectangle, ch chan struct {}) {
+func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image.RGBA, r *image.Rectangle, ch chan struct{}) {
     for x := r.Min.X; x < r.Max.X; x++ {
         for y := r.Min.Y; y < r.Max.Y; y++ {
             pt := image.Pt(x, y)
@@ -337,7 +337,7 @@ func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image
         }
     }
 
-    ch <- struct {}{}
+    ch <- struct{}{}
 }
 
 func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
@@ -346,7 +346,7 @@ func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
         img.Pix[i] = 0xFF
     }
 
-    var channels []chan struct {}
+    var channels []chan struct{}
 
     for x := 0; x < g.ImageWidth(); x += ChunkSize {
         for y := 0; y < g.ImageHeight(); y += ChunkSize {
