@@ -7,6 +7,7 @@ import (
 
 const (
     MaxIterations = 200
+    DifferentiateDx = 0.01
 )
 
 func OffsetRelation(rel Relation, off *Coord) Relation {
@@ -90,6 +91,34 @@ func ScaleFunction(f Function, scale float64) Function {
 func ScaleFunctionPerAxis(f Function, scale_x, scale_y float64) Function {
     return func (x float64) float64 {
         return scale_y * f(x / scale_x)
+    }
+}
+
+func DifferentiateFunction(f Function) Function {
+    return func(x float64) float64 {
+        return (f(x + DifferentiateDx) - f(x)) / DifferentiateDx
+    }
+}
+
+func IntegrateFunction(f Function, a, b float64) float64 {
+    sum := 0.0
+
+    if a < b {
+        for x := a; x < b; x += DifferentiateDx {
+            sum += f(x) * DifferentiateDx
+        }
+    } else {
+        for x := a; x > b; x -= DifferentiateDx {
+            sum -= f(x) * DifferentiateDx
+        }
+    }
+
+    return sum
+}
+
+func AntiDifferentiateFunction(f Function, a float64) Function {
+    return func (x float64) float64 {
+        return IntegrateFunction(f, a, x)
     }
 }
 
