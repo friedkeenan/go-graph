@@ -258,8 +258,8 @@ func (g *Graph) DrawLine(c0, c1 *Coord, col color.Color) {
 }
 
 func (g *Graph) DrawAxes() {
-    g.DrawLine(NewCoord(g.Bounds.CenterX(), g.Bounds.Pos0.Y), NewCoord(g.Bounds.CenterX(), g.Bounds.Pos1.Y), AxisColor)
-    g.DrawLine(NewCoord(g.Bounds.Pos0.X, g.Bounds.CenterY()), NewCoord(g.Bounds.Pos1.X, g.Bounds.CenterY()), AxisColor)
+    g.DrawLine(NewCoord(0, g.Bounds.Pos0.Y), NewCoord(0, g.Bounds.Pos1.Y), AxisColor)
+    g.DrawLine(NewCoord(g.Bounds.Pos0.X, 0), NewCoord(g.Bounds.Pos1.X, 0), AxisColor)
 }
 
 func (g *Graph) DrawGrid() {
