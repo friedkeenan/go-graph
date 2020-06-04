@@ -102,6 +102,11 @@ func (c *Coord) RotateAround(theta float64, other *Coord) *Coord {
     return c.Sub(other).Rotate(theta).Add(other)
 }
 
+func (c *Coord) IsValid() bool {
+    return !math.IsInf(c.X, 1) && !math.IsInf(c.X, -1) && !math.IsNaN(c.X) &&
+           !math.IsInf(c.Y, 1) && !math.IsInf(c.Y, -1) && !math.IsNaN(c.Y)
+}
+
 func (f Function) ToRelation() Relation {
     return func (c *Coord) interface{} {
         return c.Y - f(c.X)
@@ -201,6 +206,10 @@ func (g *Graph) AtCoord(c *Coord) color.Color {
 }
 
 func (g *Graph) DrawLine(c0, c1 *Coord, col color.Color) {
+    if !c0.IsValid() || !c1.IsValid() {
+        return
+    }
+
     var p0, p1 image.Point
 
     if (c0.X <= c1.X) {
