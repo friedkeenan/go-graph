@@ -109,6 +109,30 @@ func (e NoEqualityError) Error() string {
     return "No equality in relation"
 }
 
+func IsFunction(dep, indep string, vars0, vars1 []string, tokens0, tokens1 []govaluate.ExpressionToken) (bool, bool) {
+    if len(tokens0) == 1 && len(vars0) == 1 && vars0[0] == dep {
+        for _, v := range vars1 {
+            if _, ok := Constants[v]; v != indep && !ok {
+                return false, false
+            }
+        }
+
+        return true, true
+    }
+
+    if len(tokens1) == 1 && len(vars1) == 1 && vars1[0] == dep {
+        for _, v := range vars0 {
+            if _, ok := Constants[v]; v != indep && !ok {
+                return false, false
+            }
+        }
+
+        return true, false
+    }
+
+    return false, false
+}
+
 func Eval(expr string) (interface{}, error) {
     if strings.Contains(expr, "==") {
         sides := strings.Split(expr, "==")
@@ -128,120 +152,53 @@ func Eval(expr string) (interface{}, error) {
 
         vars0, tokens0 := e0.Vars(), e0.Tokens()
         vars1, tokens1 := e1.Vars(), e1.Tokens()
-        if len(tokens0) == 1 && len(vars0) == 1 && vars0[0] == "y" {
-            only_x := true
-            for _, v := range vars1 {
-                if v != "x" {
-                    only_x = false
-                    break
+
+        if is_func, dep_first := IsFunction("y", "x", vars0, vars1, tokens0, tokens1); is_func {
+            e := e1
+            if !dep_first {
+                e = e0
+            }
+
+            return Function(func (x float64) float64 {
+                params := map[string]interface{} {
+                    "x": x,
                 }
-            }
 
-            if only_x {
-                return Function(func (x float64) float64 {
-                    params := map[string]interface{} {
-                        "x": x,
-                    }
+                for k, v := range Constants {
+                    params[k] = v
+                }
 
-                    for k, v := range Constants {
-                        params[k] = v
-                    }
+                result, err := e.Evaluate(params)
+                if err != nil {
+                    log.Fatal(err)
+                }
 
-                    result, err := e1.Evaluate(params)
-                    if err != nil {
-                        log.Fatal(err)
-                    }
-
-                    return result.(float64)
-                }), nil
-            }
+                return result.(float64)
+            }), nil
         }
 
-        if len(tokens1) == 1 && len(vars1) == 1 && vars1[0] == "y" {
-            only_x := true
-            for _, v := range vars0 {
-                if v != "x" {
-                    only_x = false
-                    break
+        if is_func, dep_first := IsFunction("r", "theta", vars0, vars1, tokens0, tokens1); is_func {
+            e := e1
+            if !dep_first {
+                e = e0
+            }
+
+            return PolarFunction(func (theta float64) float64 {
+                params := map[string]interface{} {
+                    "theta": theta,
                 }
-            }
 
-            if only_x {
-                return Function(func (x float64) float64 {
-                    params := map[string]interface{} {
-                        "x": x,
-                    }
-
-                    for k, v := range Constants {
-                        params[k] = v
-                    }
-
-                    result, err := e0.Evaluate(params)
-                    if err != nil {
-                        log.Fatal(err)
-                    }
-
-                    return result.(float64)
-                }), nil
-            }
-        }
-
-        if len(tokens0) == 1 && len(vars0) == 1 && vars0[0] == "r" {
-            only_theta := true
-            for _, v := range vars1 {
-                if v != "theta" {
-                    only_theta = false
-                    break
+                for k, v := range Constants {
+                    params[k] = v
                 }
-            }
 
-            if only_theta {
-                return PolarFunction(func (theta float64) float64 {
-                    params := map[string]interface{} {
-                        "theta": theta,
-                    }
-
-                    for k, v := range Constants {
-                        params[k] = v
-                    }
-
-                    result, err := e1.Evaluate(params)
-                    if err != nil {
-                        log.Fatal(err)
-                    }
-
-                    return result.(float64)
-                }), nil
-            }
-        }
-
-        if len(tokens1) == 1 && len(vars1) == 1 && vars1[0] == "r" {
-            only_theta := true
-            for _, v := range vars0 {
-                if v != "theta" {
-                    only_theta = false
-                    break
+                result, err := e.Evaluate(params)
+                if err != nil {
+                    log.Fatal(err)
                 }
-            }
 
-            if only_theta {
-                return PolarFunction(func (theta float64) float64 {
-                    params := map[string]interface{} {
-                        "theta": theta,
-                    }
-
-                    for k, v := range Constants {
-                        params[k] = v
-                    }
-
-                    result, err := e0.Evaluate(params)
-                    if err != nil {
-                        log.Fatal(err)
-                    }
-
-                    return result.(float64)
-                }), nil
-            }
+                return result.(float64)
+            }), nil
         }
 
         return Relation(func (c *Coord) interface{} {
