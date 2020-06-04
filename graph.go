@@ -377,11 +377,11 @@ func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
     g.Image = img
 }
 
-func (g *Graph) DrawDifferentialExpressionInDirection(expr DifferentialExpression, start *Coord, dir float64, col color.Color, ch chan struct{}) {
+func (g *Graph) DrawDifferentialExpressionInDirection(expr DifferentialExpression, start *Coord, dx float64, col color.Color, ch chan struct{}) {
     old := start
 
     for i := 0; i < g.ImageWidth(); i++ {
-        start = start.Add(NewCoord(dir, expr(start) * dir))
+        start = start.Add(NewCoord(dx, expr(start) * dx))
         g.DrawLine(start, old, col)
         old = start
 
@@ -399,10 +399,10 @@ func (g *Graph) DrawDifferentialExpressionWithColor(expr DifferentialExpression,
         make(chan struct{}),
     }
 
-    dir := g.Bounds.Width() / float64(g.ImageWidth())
+    dx := g.Bounds.Width() / float64(g.ImageWidth())
 
-    go g.DrawDifferentialExpressionInDirection(expr, start, dir, col, channels[0])
-    go g.DrawDifferentialExpressionInDirection(expr, start, -dir, col, channels[1])
+    go g.DrawDifferentialExpressionInDirection(expr, start, dx, col, channels[0])
+    go g.DrawDifferentialExpressionInDirection(expr, start, -dx, col, channels[1])
 
     for _, ch := range channels {
         <-ch
