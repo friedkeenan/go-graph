@@ -26,6 +26,8 @@ type Expression func (c *Coord) interface{}
 
 type ComplexExpression func (z complex128) complex128
 
+type DifferentialExpression func (c *Coord) float64
+
 type Area struct {
     Pos0, Pos1 *Coord
 }
@@ -201,25 +203,46 @@ func (g *Graph) DrawLine(c0, c1 *Coord, col color.Color) {
 
     delta := p1.Sub(p0)
 
-    if (delta.X == 0) { // Vertical line
-        var diff int
-        if (p0.Y <= p1.Y) {
-            diff = 1
-        } else {
+    if delta.X == 0 { // Vertical line
+        diff := 1
+        if delta.Y < 0 {
             diff = -1
         }
 
-        for ; p0.Y < p1.Y; p0.Y += diff {
-            g.Image.Set(p0.X, p0.Y, col)
+        for ; p0.Y != p1.Y; p0.Y += diff {
+            g.SetPixel(p0, col)
+        }
+    } else if delta.Y == 0 { // Horizontal line
+        for ; p0.X < p1.X; p0.X++ {
+            g.SetPixel(p0, col)
         }
     } else {
-        slope := float64(delta.Y) / float64(delta.X)
-        yint := int(float64(p0.Y) - slope * float64(p0.X))
+        y_diff := -1
+        if delta.Y > 0 {
+            delta.Y = -delta.Y
+            y_diff = 1
+        }
 
-        for x := p0.X; x <= p1.X; x++ {
-            y := int(slope * float64(x)) + yint
+        err := delta.X + delta.Y
 
-            g.SetPixel(image.Pt(x, y), col)
+        for {
+            g.SetPixel(p0, col)
+
+            if p0.Eq(p1) {
+                break
+            }
+
+            tmp_err := 2 * err
+
+            if tmp_err >= delta.Y {
+                err += delta.Y
+                p0.X++
+            }
+
+            if tmp_err <= delta.X {
+                err += delta.X
+                p0.Y += y_diff
+            }
         }
     }
 }
@@ -352,4 +375,40 @@ func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
     }
 
     g.Image = img
+}
+
+func (g *Graph) DrawDifferentialExpressionInDirection(expr DifferentialExpression, start *Coord, dir float64, col color.Color, ch chan struct{}) {
+    old := start
+
+    for i := 0; i < g.ImageWidth(); i++ {
+        start = start.Add(NewCoord(dir, expr(start) * dir))
+        g.DrawLine(start, old, col)
+        old = start
+
+        if !g.Bounds.Contains(start) {
+            break
+        }
+    }
+
+    ch <- struct{}{}
+}
+
+func (g *Graph) DrawDifferentialExpressionWithColor(expr DifferentialExpression, start *Coord, col color.Color) {
+    channels := [2]chan struct{} {
+        make(chan struct{}),
+        make(chan struct{}),
+    }
+
+    dir := g.Bounds.Width() / float64(g.ImageWidth())
+
+    go g.DrawDifferentialExpressionInDirection(expr, start, dir, col, channels[0])
+    go g.DrawDifferentialExpressionInDirection(expr, start, -dir, col, channels[1])
+
+    for _, ch := range channels {
+        <-ch
+    }
+}
+
+func (g *Graph) DrawDifferentialExpression(expr DifferentialExpression, start *Coord) {
+    g.DrawDifferentialExpressionWithColor(expr, start, ExpressionColor)
 }

@@ -26,6 +26,10 @@ func main() {
     g := NewGraph(NewArea(x0, y0, x1, y1), scale)
     g.DrawGrid()
 
+    g.DrawDifferentialExpression(func (c *Coord) float64 {
+        return c.Y
+    }, NewCoord(0, 1))
+
     for i := 3; i < len(os.Args); i++ {
         col := ExpressionColor
         arg_swallowed := false
