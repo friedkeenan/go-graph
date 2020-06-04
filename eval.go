@@ -128,7 +128,7 @@ func Eval(expr string) (interface{}, error) {
 
         vars0, tokens0 := e0.Vars(), e0.Tokens()
         vars1, tokens1 := e1.Vars(), e1.Tokens()
-        if len(tokens0) == 1 && vars0[0] == "y" {
+        if len(tokens0) == 1 && len(vars0) == 1 && vars0[0] == "y" {
             only_x := true
             for _, v := range vars1 {
                 if v != "x" {
@@ -157,7 +157,7 @@ func Eval(expr string) (interface{}, error) {
             }
         }
 
-        if len(tokens1) == 1 && vars1[0] == "y" {
+        if len(tokens1) == 1 && len(vars1) == 1 && vars1[0] == "y" {
             only_x := true
             for _, v := range vars0 {
                 if v != "x" {
@@ -170,6 +170,64 @@ func Eval(expr string) (interface{}, error) {
                 return Function(func (x float64) float64 {
                     params := map[string]interface{} {
                         "x": x,
+                    }
+
+                    for k, v := range Constants {
+                        params[k] = v
+                    }
+
+                    result, err := e0.Evaluate(params)
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+
+                    return result.(float64)
+                }), nil
+            }
+        }
+
+        if len(tokens0) == 1 && len(vars0) == 1 && vars0[0] == "r" {
+            only_theta := true
+            for _, v := range vars1 {
+                if v != "theta" {
+                    only_theta = false
+                    break
+                }
+            }
+
+            if only_theta {
+                return PolarFunction(func (theta float64) float64 {
+                    params := map[string]interface{} {
+                        "theta": theta,
+                    }
+
+                    for k, v := range Constants {
+                        params[k] = v
+                    }
+
+                    result, err := e1.Evaluate(params)
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+
+                    return result.(float64)
+                }), nil
+            }
+        }
+
+        if len(tokens1) == 1 && len(vars1) == 1 && vars1[0] == "r" {
+            only_theta := true
+            for _, v := range vars0 {
+                if v != "theta" {
+                    only_theta = false
+                    break
+                }
+            }
+
+            if only_theta {
+                return PolarFunction(func (theta float64) float64 {
+                    params := map[string]interface{} {
+                        "theta": theta,
                     }
 
                     for k, v := range Constants {

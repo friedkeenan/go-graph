@@ -10,6 +10,8 @@ import (
 
 const (
     ChunkSize = 64
+    AngleSize = math.Pi / 4
+    AngleStep = AngleSize / 100
 )
 
 var (
@@ -24,6 +26,7 @@ type Coord struct {
 
 type Relation func (c *Coord) interface{}
 type Function func (x float64) float64
+type PolarFunction func (theta float64) float64
 
 type ComplexRelation func (z complex128) complex128
 
@@ -424,7 +427,7 @@ func (g *Graph) DrawFunctionInRange(f Function, start, end int, col color.Color,
     real_start := g.PixelToCoord(image.Pt(start, 0)).X
     old := NewCoord(real_start, f(real_start))
 
-    for x := start; x <= end; x++ {
+    for x := start + 1; x <= end; x++ {
         real_x := g.PixelToCoord(image.Pt(x, 0)).X
 
         new := NewCoord(real_x, f(real_x))
@@ -452,4 +455,35 @@ func (g *Graph) DrawFunctionWithColor(f Function, col color.Color) {
 
 func (g *Graph) DrawFunction(f Function) {
     g.DrawFunctionWithColor(f, RelationColor)
+}
+
+func (g *Graph) DrawPolarFunctionInRange(f PolarFunction, start, end float64, col color.Color, ch chan struct {}) {
+    old := NewCoordFromPolar(f(start), start)
+
+    for theta := start + AngleStep; theta <= end + AngleStep; theta += AngleStep {
+        new := NewCoordFromPolar(f(theta), theta)
+        g.DrawLine(new, old, col)
+        old = new
+    }
+
+    ch <- struct{}{}
+}
+
+func (g *Graph) DrawPolarFunctionWithColor(f PolarFunction, col color.Color) {
+    var channels []chan struct{}
+
+    for theta := 0.0; theta < 2 * math.Pi; theta += AngleSize {
+        ch := make(chan struct{})
+        channels = append(channels, ch)
+
+        go g.DrawPolarFunctionInRange(f, theta, math.Min(theta + AngleSize, 2 * math.Pi), col, ch)
+    }
+
+    for _, ch := range channels {
+        <-ch
+    }
+}
+
+func (g *Graph) DrawPolarFunction(f PolarFunction) {
+    g.DrawPolarFunctionWithColor(f, RelationColor)
 }

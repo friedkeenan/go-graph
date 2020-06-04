@@ -49,6 +49,9 @@ func main() {
             case Function:
                 g.DrawFunctionWithColor(expr.(Function), col)
 
+            case PolarFunction:
+                g.DrawPolarFunctionWithColor(expr.(PolarFunction), col)
+
             case Relation:
                 g.DrawRelationWithColor(expr.(Relation), col)
         }
