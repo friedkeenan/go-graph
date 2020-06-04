@@ -23,6 +23,7 @@ type Coord struct {
 }
 
 type Expression func (c *Coord) interface{}
+type Function func (x float64) float64
 
 type ComplexExpression func (z complex128) complex128
 
@@ -96,6 +97,12 @@ func (c *Coord) Rotate(theta float64) *Coord {
 
 func (c *Coord) RotateAround(theta float64, other *Coord) *Coord {
     return c.Sub(other).Rotate(theta).Add(other)
+}
+
+func (f Function) ToExpression() Expression {
+    return func (c *Coord) interface{} {
+        return c.Y - f(c.X)
+    }
 }
 
 func NewArea(x0, y0, x1, y1 float64) *Area {
@@ -411,4 +418,38 @@ func (g *Graph) DrawDifferentialExpressionWithColor(expr DifferentialExpression,
 
 func (g *Graph) DrawDifferentialExpression(expr DifferentialExpression, start *Coord) {
     g.DrawDifferentialExpressionWithColor(expr, start, ExpressionColor)
+}
+
+func (g *Graph) DrawFunctionInRange(f Function, start, end int, col color.Color, ch chan struct{}) {
+    real_start := g.PixelToCoord(image.Pt(start, 0)).X
+    old := NewCoord(real_start, f(real_start))
+
+    for x := start; x <= end; x++ {
+        real_x := g.PixelToCoord(image.Pt(x, 0)).X
+
+        new := NewCoord(real_x, f(real_x))
+        g.DrawLine(new, old, col)
+        old = new
+    }
+
+    ch <- struct{}{}
+}
+
+func (g *Graph) DrawFunctionWithColor(f Function, col color.Color) {
+    var channels []chan struct{}
+
+    for x := 0; x < g.ImageWidth(); x += ChunkSize {
+        ch := make(chan struct{})
+        channels = append(channels, ch)
+
+        go g.DrawFunctionInRange(f, x, MinInt(x + ChunkSize, g.ImageWidth()), col, ch)
+    }
+
+    for _, ch := range channels {
+        <-ch
+    }
+}
+
+func (g *Graph) DrawFunction(f Function) {
+    g.DrawFunctionWithColor(f, ExpressionColor)
 }

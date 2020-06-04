@@ -4,6 +4,7 @@ import (
     "os"
     "fmt"
     "log"
+    "math"
 )
 
 func main() {
@@ -26,9 +27,9 @@ func main() {
     g := NewGraph(NewArea(x0, y0, x1, y1), scale)
     g.DrawGrid()
 
-    g.DrawDifferentialExpression(func (c *Coord) float64 {
-        return c.Y
-    }, NewCoord(0, 1))
+    g.DrawFunction(func (x float64) float64 {
+        return math.Pow(x, 2);
+    })
 
     for i := 3; i < len(os.Args); i++ {
         col := ExpressionColor

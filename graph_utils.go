@@ -75,6 +75,24 @@ func InvertExpression(expr Expression) Expression {
     }
 }
 
+func OffsetFunction(f Function, off *Coord) Function {
+    return func (x float64) float64 {
+        return f(x - off.X) + off.Y
+    }
+}
+
+func ScaleFunction(f Function, scale float64) Function {
+    return func (x float64) float64 {
+        return scale * f(x / scale)
+    }
+}
+
+func ScaleFunctionPerAxis(f Function, scale_x, scale_y float64) Function {
+    return func (x float64) float64 {
+        return scale_y * f(x / scale_x)
+    }
+}
+
 func Mandelbrot(c *Coord) interface{} {
     seed := complex(c.X, c.Y)
     z := complex(0, 0)
