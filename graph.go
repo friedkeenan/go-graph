@@ -13,21 +13,21 @@ const (
 )
 
 var (
-    AxisColor       = color.RGBA{0xFF, 0x00, 0x00, 0xFF}
-    GridColor       = color.RGBA{0xE0, 0xE0, 0xE0, 0xFF}
-    ExpressionColor = color.RGBA{0x00, 0x00, 0x00, 0xFF}
+    AxisColor     = color.RGBA{0xFF, 0x00, 0x00, 0xFF}
+    GridColor     = color.RGBA{0xE0, 0xE0, 0xE0, 0xFF}
+    RelationColor = color.RGBA{0x00, 0x00, 0x00, 0xFF}
 )
 
 type Coord struct {
     X, Y float64
 }
 
-type Expression func (c *Coord) interface{}
+type Relation func (c *Coord) interface{}
 type Function func (x float64) float64
 
-type ComplexExpression func (z complex128) complex128
+type ComplexRelation func (z complex128) complex128
 
-type DifferentialExpression func (c *Coord) float64
+type DifferentialFunction func (c *Coord) float64
 
 type Area struct {
     Pos0, Pos1 *Coord
@@ -99,7 +99,7 @@ func (c *Coord) RotateAround(theta float64, other *Coord) *Coord {
     return c.Sub(other).Rotate(theta).Add(other)
 }
 
-func (f Function) ToExpression() Expression {
+func (f Function) ToRelation() Relation {
     return func (c *Coord) interface{} {
         return c.Y - f(c.X)
     }
@@ -273,13 +273,13 @@ func (g *Graph) DrawGrid() {
     g.DrawAxes()
 }
 
-func (g *Graph) DrawExpressionInChunk(expr Expression, r *image.Rectangle, col color.Color, ch chan struct{}) {
+func (g *Graph) DrawRelationInChunk(rel Relation, r *image.Rectangle, col color.Color, ch chan struct{}) {
     for x := r.Min.X; x < r.Max.X; x++ {
         for y := r.Min.Y; y < r.Max.Y; y++ {
             pt := image.Pt(x, y)
             c := g.PixelToCoord(pt)
 
-            switch ret := expr(c); ret.(type) {
+            switch ret := rel(c); ret.(type) {
                 case bool:
                     if ret.(bool) {
                         g.SetPixel(pt, col)
@@ -293,9 +293,9 @@ func (g *Graph) DrawExpressionInChunk(expr Expression, r *image.Rectangle, col c
                     }
 
                     diff := [3]float64 {
-                        expr(coords[0]).(float64),
-                        expr(coords[1]).(float64),
-                        expr(coords[2]).(float64),
+                        rel(coords[0]).(float64),
+                        rel(coords[1]).(float64),
+                        rel(coords[2]).(float64),
                     }
 
                     if ret.(float64) == 0 {
@@ -316,7 +316,7 @@ func (g *Graph) DrawExpressionInChunk(expr Expression, r *image.Rectangle, col c
     ch <- struct{}{}
 }
 
-func (g *Graph) DrawExpressionWithColor(expr Expression, col color.Color) {
+func (g *Graph) DrawRelationWithColor(rel Relation, col color.Color) {
     var channels []chan struct{}
 
     for x := 0; x < g.ImageWidth(); x += ChunkSize {
@@ -325,7 +325,7 @@ func (g *Graph) DrawExpressionWithColor(expr Expression, col color.Color) {
             channels = append(channels, ch)
 
             r := image.Rect(x, y, MinInt(x + ChunkSize, g.ImageWidth()), MinInt(y + ChunkSize, g.ImageHeight()))
-            go g.DrawExpressionInChunk(expr, &r, col, ch)
+            go g.DrawRelationInChunk(rel, &r, col, ch)
         }
     }
 
@@ -334,18 +334,18 @@ func (g *Graph) DrawExpressionWithColor(expr Expression, col color.Color) {
     }
 }
 
-func (g *Graph) DrawExpression(expr Expression) {
-    g.DrawExpressionWithColor(expr, ExpressionColor)
+func (g *Graph) DrawRelation(rel Relation) {
+    g.DrawRelationWithColor(rel, RelationColor)
 }
 
-func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image.RGBA, r *image.Rectangle, ch chan struct{}) {
+func (g *Graph) ApplyComplexRelationInChunk(rel ComplexRelation, dst *image.RGBA, r *image.Rectangle, ch chan struct{}) {
     for x := r.Min.X; x < r.Max.X; x++ {
         for y := r.Min.Y; y < r.Max.Y; y++ {
             pt := image.Pt(x, y)
             c := g.PixelToCoord(pt)
             z := complex(c.X, c.Y)
 
-            new_z := expr(z)
+            new_z := rel(z)
             new_c := NewCoord(real(new_z), imag(new_z))
 
             if g.Bounds.Contains(new_c) {
@@ -359,7 +359,7 @@ func (g *Graph) ApplyComplexExpressionInChunk(expr ComplexExpression, dst *image
     ch <- struct{}{}
 }
 
-func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
+func (g *Graph) ApplyComplexRelation(rel ComplexRelation) {
     img := image.NewRGBA(g.Image.Bounds())
     for i, _ := range g.Image.Pix {
         img.Pix[i] = 0xFF
@@ -373,7 +373,7 @@ func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
             channels = append(channels, ch)
 
             r := image.Rect(x, y, MinInt(x + ChunkSize, g.ImageWidth()), MinInt(y + ChunkSize, g.ImageHeight()))
-            go g.ApplyComplexExpressionInChunk(expr, img, &r, ch)
+            go g.ApplyComplexRelationInChunk(rel, img, &r, ch)
         }
     }
 
@@ -384,11 +384,11 @@ func (g *Graph) ApplyComplexExpression(expr ComplexExpression) {
     g.Image = img
 }
 
-func (g *Graph) DrawDifferentialExpressionInDirection(expr DifferentialExpression, start *Coord, dx float64, col color.Color, ch chan struct{}) {
+func (g *Graph) DrawDifferentialFunctionInDirection(d DifferentialFunction, start *Coord, dx float64, col color.Color, ch chan struct{}) {
     old := start
 
     for i := 0; i < g.ImageWidth(); i++ {
-        start = start.Add(NewCoord(dx, expr(start) * dx))
+        start = start.Add(NewCoord(dx, d(start) * dx))
         g.DrawLine(start, old, col)
         old = start
 
@@ -400,7 +400,7 @@ func (g *Graph) DrawDifferentialExpressionInDirection(expr DifferentialExpressio
     ch <- struct{}{}
 }
 
-func (g *Graph) DrawDifferentialExpressionWithColor(expr DifferentialExpression, start *Coord, col color.Color) {
+func (g *Graph) DrawDifferentialFunctionWithColor(d DifferentialFunction, start *Coord, col color.Color) {
     channels := [2]chan struct{} {
         make(chan struct{}),
         make(chan struct{}),
@@ -408,16 +408,16 @@ func (g *Graph) DrawDifferentialExpressionWithColor(expr DifferentialExpression,
 
     dx := g.Bounds.Width() / float64(g.ImageWidth())
 
-    go g.DrawDifferentialExpressionInDirection(expr, start, dx, col, channels[0])
-    go g.DrawDifferentialExpressionInDirection(expr, start, -dx, col, channels[1])
+    go g.DrawDifferentialFunctionInDirection(d, start, dx, col, channels[0])
+    go g.DrawDifferentialFunctionInDirection(d, start, -dx, col, channels[1])
 
     for _, ch := range channels {
         <-ch
     }
 }
 
-func (g *Graph) DrawDifferentialExpression(expr DifferentialExpression, start *Coord) {
-    g.DrawDifferentialExpressionWithColor(expr, start, ExpressionColor)
+func (g *Graph) DrawDifferentialFunction(d DifferentialFunction, start *Coord) {
+    g.DrawDifferentialFunctionWithColor(d, start, RelationColor)
 }
 
 func (g *Graph) DrawFunctionInRange(f Function, start, end int, col color.Color, ch chan struct{}) {
@@ -451,5 +451,5 @@ func (g *Graph) DrawFunctionWithColor(f Function, col color.Color) {
 }
 
 func (g *Graph) DrawFunction(f Function) {
-    g.DrawFunctionWithColor(f, ExpressionColor)
+    g.DrawFunctionWithColor(f, RelationColor)
 }

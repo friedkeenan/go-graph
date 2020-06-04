@@ -106,10 +106,10 @@ var (
 type NoEqualityError struct{}
 
 func (e NoEqualityError) Error() string {
-    return "No equality in expression"
+    return "No equality in relation"
 }
 
-func EvalExpression(expr string) (Expression, error) {
+func Eval(expr string) (interface{}, error) {
     if strings.Contains(expr, "==") {
         sides := strings.Split(expr, "==")
         if len(sides) != 2 {
@@ -126,7 +126,67 @@ func EvalExpression(expr string) (Expression, error) {
             return nil, err
         }
 
-        return func (c *Coord) interface{} {
+        vars0, tokens0 := e0.Vars(), e0.Tokens()
+        vars1, tokens1 := e1.Vars(), e1.Tokens()
+        if len(tokens0) == 1 && vars0[0] == "y" {
+            only_x := true
+            for _, v := range vars1 {
+                if v != "x" {
+                    only_x = false
+                    break
+                }
+            }
+
+            if only_x {
+                return Function(func (x float64) float64 {
+                    params := map[string]interface{} {
+                        "x": x,
+                    }
+
+                    for k, v := range Constants {
+                        params[k] = v
+                    }
+
+                    result, err := e1.Evaluate(params)
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+
+                    return result.(float64)
+                }), nil
+            }
+        }
+
+        if len(tokens1) == 1 && vars1[0] == "y" {
+            only_x := true
+            for _, v := range vars0 {
+                if v != "x" {
+                    only_x = false
+                    break
+                }
+            }
+
+            if only_x {
+                return Function(func (x float64) float64 {
+                    params := map[string]interface{} {
+                        "x": x,
+                    }
+
+                    for k, v := range Constants {
+                        params[k] = v
+                    }
+
+                    result, err := e0.Evaluate(params)
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+
+                    return result.(float64)
+                }), nil
+            }
+        }
+
+        return Relation(func (c *Coord) interface{} {
             params := map[string]interface{} {
                 "x": c.X,
                 "y": c.Y,
@@ -148,14 +208,14 @@ func EvalExpression(expr string) (Expression, error) {
             }
 
             return result0.(float64) - result1.(float64)
-        }, nil
+        }), nil
     } else {
         e, err := govaluate.NewEvaluableExpressionWithFunctions(expr, Functions)
         if err != nil {
             return nil, err
         }
 
-        return func (c *Coord) interface{} {
+        return Relation(func (c *Coord) interface{} {
             params := map[string]interface{} {
                 "x": c.X,
                 "y": c.Y,
@@ -172,6 +232,6 @@ func EvalExpression(expr string) (Expression, error) {
             }
 
             return result
-        }, nil
+        }), nil
     }
 }

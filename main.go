@@ -4,7 +4,6 @@ import (
     "os"
     "fmt"
     "log"
-    "math"
 )
 
 func main() {
@@ -27,12 +26,8 @@ func main() {
     g := NewGraph(NewArea(x0, y0, x1, y1), scale)
     g.DrawGrid()
 
-    g.DrawFunction(func (x float64) float64 {
-        return math.Pow(x, 2);
-    })
-
     for i := 3; i < len(os.Args); i++ {
-        col := ExpressionColor
+        col := RelationColor
         arg_swallowed := false
 
         if i < len(os.Args) - 1 && os.Args[i + 1][0] == '#' {
@@ -41,16 +36,22 @@ func main() {
             if err == nil {
                 arg_swallowed = true
             } else {
-                col = ExpressionColor
+                col = RelationColor
             }
         }
 
-        expr, err := EvalExpression(os.Args[i])
+        expr, err := Eval(os.Args[i])
         if err != nil {
             log.Fatal(err)
         }
 
-        g.DrawExpressionWithColor(expr, col)
+        switch expr.(type) {
+            case Function:
+                g.DrawFunctionWithColor(expr.(Function), col)
+
+            case Relation:
+                g.DrawRelationWithColor(expr.(Relation), col)
+        }
 
         if arg_swallowed {
             i++

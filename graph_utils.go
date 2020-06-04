@@ -9,69 +9,69 @@ const (
     MaxIterations = 200
 )
 
-func OffsetExpression(expr Expression, off *Coord) Expression {
+func OffsetRelation(rel Relation, off *Coord) Relation {
     return func (c *Coord) interface{} {
         c = c.Sub(off)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func ScaleExpression(expr Expression, scale float64) Expression {
+func ScaleRelation(rel Relation, scale float64) Relation {
     return func (c *Coord) interface{} {
         c = c.Div(scale)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func ScaleExpressionAround(expr Expression, scale float64, coord *Coord) Expression {
+func ScaleRelationAround(rel Relation, scale float64, coord *Coord) Relation {
     return func (c *Coord) interface{} {
         c = c.Sub(coord).Div(scale).Add(coord)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func ScaleExpressionPerAxis(expr Expression, scale_x, scale_y float64) Expression {
+func ScaleRelationPerAxis(rel Relation, scale_x, scale_y float64) Relation {
     return func (c *Coord) interface{} {
         c = NewCoord(c.X / scale_x, c.Y / scale_y)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func ScaleExpressionPerAxisAround(expr Expression, scale_x, scale_y float64, coord *Coord) Expression {
+func ScaleRelationPerAxisAround(rel Relation, scale_x, scale_y float64, coord *Coord) Relation {
     return func (c *Coord) interface{} {
         c = c.Sub(coord)
         c = NewCoord(c.X / scale_x, c.Y / scale_y)
         c = c.Add(coord)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func RotateExpression(expr Expression, theta float64) Expression {
+func RotateRelation(rel Relation, theta float64) Relation {
     return func (c *Coord) interface{} {
         c = c.Rotate(-theta)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func RotateExpressionAround(expr Expression, theta float64, coord *Coord) Expression {
+func RotateRelationAround(rel Relation, theta float64, coord *Coord) Relation {
     return func (c *Coord) interface{} {
         c = c.RotateAround(-theta, coord)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
-func InvertExpression(expr Expression) Expression {
+func InvertRelation(rel Relation) Relation {
     return func (c *Coord) interface{} {
         c = NewCoord(c.Y, c.X)
 
-        return expr(c)
+        return rel(c)
     }
 }
 
@@ -112,18 +112,18 @@ func UnitCircle(c *Coord) interface{} {
     return math.Pow(c.X, 2) + math.Pow(c.Y, 2) - 1
 }
 
-func Circle(r float64) Expression {
-    return ScaleExpression(UnitCircle, r)
+func Circle(r float64) Relation {
+    return ScaleRelation(UnitCircle, r)
 }
 
-func CircleAt(r float64, center *Coord) Expression {
-    return OffsetExpression(Circle(r), center)
+func CircleAt(r float64, center *Coord) Relation {
+    return OffsetRelation(Circle(r), center)
 }
 
-func Ellipse(a, b float64) Expression {
-    return ScaleExpressionPerAxis(UnitCircle, a, b)
+func Ellipse(a, b float64) Relation {
+    return ScaleRelationPerAxis(UnitCircle, a, b)
 }
 
-func EllipseAt(a, b float64, center *Coord) Expression {
-    return OffsetExpression(Ellipse(a, b), center)
+func EllipseAt(a, b float64, center *Coord) Relation {
+    return OffsetRelation(Ellipse(a, b), center)
 }
