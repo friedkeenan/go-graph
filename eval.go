@@ -2,7 +2,6 @@ package main
 
 import (
     "strings"
-    "log"
     "math"
     "github.com/Knetic/govaluate"
 )
@@ -170,7 +169,7 @@ func Eval(expr string) (interface{}, error) {
 
                 result, err := e.Evaluate(params)
                 if err != nil {
-                    log.Fatal(err)
+                    return math.NaN()
                 }
 
                 return result.(float64)
@@ -194,7 +193,7 @@ func Eval(expr string) (interface{}, error) {
 
                 result, err := e.Evaluate(params)
                 if err != nil {
-                    log.Fatal(err)
+                    return math.NaN()
                 }
 
                 return result.(float64)
@@ -214,12 +213,12 @@ func Eval(expr string) (interface{}, error) {
 
             result0, err := e0.Evaluate(params)
             if err != nil {
-                log.Fatal(err)
+                return err
             }
 
             result1, err := e1.Evaluate(params)
             if err != nil {
-                log.Fatal(err)
+                return err
             }
 
             return result0.(float64) - result1.(float64)
@@ -244,7 +243,7 @@ func Eval(expr string) (interface{}, error) {
 
         result, err := e.Evaluate(params)
         if err != nil {
-            log.Fatal(err)
+            return err
         }
 
         return result

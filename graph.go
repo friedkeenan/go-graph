@@ -320,6 +320,10 @@ func (g *Graph) DrawRelationInChunk(rel Relation, r *image.Rectangle, col color.
                     }
 
                 case float64:
+                    if math.IsNaN(ret.(float64)) || math.IsInf(ret.(float64), 1) || math.IsInf(ret.(float64), -1) {
+                        break
+                    }
+
                     coords := [3]*Coord {
                         g.PixelToCoord(pt.Add(image.Pt(1, 0))),
                         g.PixelToCoord(pt.Add(image.Pt(0, 1))),
@@ -343,6 +347,10 @@ func (g *Graph) DrawRelationInChunk(rel Relation, r *image.Rectangle, col color.
                             break
                         }
                     }
+
+                case error:
+                    ch <- struct{}{}
+                    return
             }
         }
     }
