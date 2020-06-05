@@ -151,7 +151,7 @@ func NewGraph(bounds *Area, scale float64) *Graph {
     g.Bounds = bounds
     g.Image = image.NewRGBA(image.Rect(0, 0, int(bounds.Width() * scale), int(bounds.Height() * scale)))
 
-    for i, _ := range g.Image.Pix {
+    for i := range g.Image.Pix {
         g.Image.Pix[i] = 0xFF
     }
 
@@ -373,7 +373,7 @@ func (g *Graph) ApplyComplexRelationInChunk(rel ComplexRelation, dst *image.RGBA
 
 func (g *Graph) ApplyComplexRelation(rel ComplexRelation) {
     img := image.NewRGBA(g.Image.Bounds())
-    for i, _ := range g.Image.Pix {
+    for i := range g.Image.Pix {
         img.Pix[i] = 0xFF
     }
 

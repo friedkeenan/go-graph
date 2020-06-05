@@ -224,29 +224,29 @@ func Eval(expr string) (interface{}, error) {
 
             return result0.(float64) - result1.(float64)
         }), nil
-    } else {
-        e, err := govaluate.NewEvaluableExpressionWithFunctions(expr, Functions)
-        if err != nil {
-            return nil, err
+    }
+
+    e, err := govaluate.NewEvaluableExpressionWithFunctions(expr, Functions)
+    if err != nil {
+        return nil, err
+    }
+
+    return Relation(func (c *Coord) interface{} {
+        params := map[string]interface{} {
+            "x": c.X,
+            "y": c.Y,
+        }
+        params["r"], params["theta"] = c.Polar()
+
+        for k, v := range Constants {
+            params[k] = v
         }
 
-        return Relation(func (c *Coord) interface{} {
-            params := map[string]interface{} {
-                "x": c.X,
-                "y": c.Y,
-            }
-            params["r"], params["theta"] = c.Polar()
+        result, err := e.Evaluate(params)
+        if err != nil {
+            log.Fatal(err)
+        }
 
-            for k, v := range Constants {
-                params[k] = v
-            }
-
-            result, err := e.Evaluate(params)
-            if err != nil {
-                log.Fatal(err)
-            }
-
-            return result
-        }), nil
-    }
+        return result
+    }), nil
 }
