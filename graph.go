@@ -15,9 +15,10 @@ const (
 )
 
 var (
-    AxisColor     = color.RGBA{0xFF, 0x00, 0x00, 0xFF}
-    GridColor     = color.RGBA{0xE0, 0xE0, 0xE0, 0xFF}
-    RelationColor = color.RGBA{0x00, 0x00, 0x00, 0xFF}
+    DefaultBackgroundColor = color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
+    DefaultAxisColor       = color.RGBA{0xFF, 0x00, 0x00, 0xFF}
+    DefaultGridColor       = color.RGBA{0xE0, 0xE0, 0xE0, 0xFF}
+    DefaultRelationColor   = color.RGBA{0x00, 0x00, 0x00, 0xFF}
 )
 
 type Coord struct {
@@ -39,6 +40,8 @@ type Area struct {
 type Graph struct {
     Bounds *Area
     Image *image.RGBA
+
+    BackgroundColor, RelationColor, AxisColor, GridColor color.Color
 }
 
 func NewCoord(x, y float64) *Coord {
@@ -113,6 +116,14 @@ func (f Function) ToRelation() Relation {
     }
 }
 
+func (f PolarFunction) ToRelation() Relation {
+    return func (c *Coord) interface{} {
+        r, theta := c.Polar()
+
+        return r - f(theta)
+    }
+}
+
 func NewArea(x0, y0, x1, y1 float64) *Area {
     return &Area{NewCoord(x0, y0), NewCoord(x1, y1)}
 }
@@ -145,17 +156,28 @@ func (a *Area) Contains(c *Coord) bool {
     return a.Pos0.X <= c.X && c.X < a.Pos1.X && a.Pos0.Y >= c.Y && c.Y > a.Pos1.Y
 }
 
-func NewGraph(bounds *Area, scale float64) *Graph {
-    g := Graph{}
+func NewGraphWithColors(bounds *Area, scale float64, bg_col, rel_col, axis_col, grid_col color.Color) *Graph {
+    g := &Graph{}
 
     g.Bounds = bounds
     g.Image = image.NewRGBA(image.Rect(0, 0, int(bounds.Width() * scale), int(bounds.Height() * scale)))
 
-    for i := range g.Image.Pix {
-        g.Image.Pix[i] = 0xFF
+    g.BackgroundColor = bg_col
+    g.RelationColor = rel_col
+    g.AxisColor = axis_col
+    g.GridColor = grid_col
+
+    for x := 0; x < g.ImageWidth(); x++ {
+        for y := 0; y < g.ImageHeight(); y++ {
+            g.SetPixel(image.Pt(x, y), bg_col)
+        }
     }
 
-    return &g
+    return g
+}
+
+func NewGraph(bounds *Area, scale float64) *Graph {
+    return NewGraphWithColors(bounds, scale, DefaultBackgroundColor, DefaultRelationColor, DefaultAxisColor, DefaultGridColor)
 }
 
 func (g *Graph) SavePNG(w io.Writer) error {
@@ -267,18 +289,18 @@ func (g *Graph) DrawLine(c0, c1 *Coord, col color.Color) {
 }
 
 func (g *Graph) DrawAxes() {
-    g.DrawLine(NewCoord(0, g.Bounds.Pos0.Y), NewCoord(0, g.Bounds.Pos1.Y), AxisColor)
-    g.DrawLine(NewCoord(g.Bounds.Pos0.X, 0), NewCoord(g.Bounds.Pos1.X, 0), AxisColor)
+    g.DrawLine(NewCoord(0, g.Bounds.Pos0.Y), NewCoord(0, g.Bounds.Pos1.Y), g.AxisColor)
+    g.DrawLine(NewCoord(g.Bounds.Pos0.X, 0), NewCoord(g.Bounds.Pos1.X, 0), g.AxisColor)
 }
 
 func (g *Graph) DrawGrid() {
     for x := 1.0; x < g.Bounds.Pos1.X; x++ {
-        g.DrawLine(NewCoord(x, g.Bounds.Pos0.Y), NewCoord(x, g.Bounds.Pos1.Y), GridColor)
-        g.DrawLine(NewCoord(-x, g.Bounds.Pos0.Y), NewCoord(-x, g.Bounds.Pos1.Y), GridColor)
+        g.DrawLine(NewCoord(x, g.Bounds.Pos0.Y), NewCoord(x, g.Bounds.Pos1.Y), g.GridColor)
+        g.DrawLine(NewCoord(-x, g.Bounds.Pos0.Y), NewCoord(-x, g.Bounds.Pos1.Y), g.GridColor)
 
         for y := 1.0; y < g.Bounds.Pos0.Y; y++ {
-            g.DrawLine(NewCoord(g.Bounds.Pos0.X, y), NewCoord(g.Bounds.Pos1.X, y), GridColor)
-            g.DrawLine(NewCoord(g.Bounds.Pos0.X, -y), NewCoord(g.Bounds.Pos1.X, -y), GridColor)
+            g.DrawLine(NewCoord(g.Bounds.Pos0.X, y), NewCoord(g.Bounds.Pos1.X, y), g.GridColor)
+            g.DrawLine(NewCoord(g.Bounds.Pos0.X, -y), NewCoord(g.Bounds.Pos1.X, -y), g.GridColor)
         }
     }
 
@@ -347,7 +369,7 @@ func (g *Graph) DrawRelationWithColor(rel Relation, col color.Color) {
 }
 
 func (g *Graph) DrawRelation(rel Relation) {
-    g.DrawRelationWithColor(rel, RelationColor)
+    g.DrawRelationWithColor(rel, g.RelationColor)
 }
 
 func (g *Graph) ApplyComplexRelationInChunk(rel ComplexRelation, dst *image.RGBA, r *image.Rectangle, ch chan struct{}) {
@@ -373,8 +395,10 @@ func (g *Graph) ApplyComplexRelationInChunk(rel ComplexRelation, dst *image.RGBA
 
 func (g *Graph) ApplyComplexRelation(rel ComplexRelation) {
     img := image.NewRGBA(g.Image.Bounds())
-    for i := range g.Image.Pix {
-        img.Pix[i] = 0xFF
+    for x := 0; x < g.ImageWidth(); x++ {
+        for y := 0; y < g.ImageHeight(); y++ {
+            g.SetPixel(image.Pt(x, y), g.BackgroundColor)
+        }
     }
 
     var channels []chan struct{}
@@ -429,7 +453,7 @@ func (g *Graph) DrawDifferentialFunctionWithColor(d DifferentialFunction, start 
 }
 
 func (g *Graph) DrawDifferentialFunction(d DifferentialFunction, start *Coord) {
-    g.DrawDifferentialFunctionWithColor(d, start, RelationColor)
+    g.DrawDifferentialFunctionWithColor(d, start, g.RelationColor)
 }
 
 func (g *Graph) DrawFunctionInRange(f Function, start, end int, col color.Color, ch chan struct{}) {
@@ -463,7 +487,7 @@ func (g *Graph) DrawFunctionWithColor(f Function, col color.Color) {
 }
 
 func (g *Graph) DrawFunction(f Function) {
-    g.DrawFunctionWithColor(f, RelationColor)
+    g.DrawFunctionWithColor(f, g.RelationColor)
 }
 
 func (g *Graph) DrawPolarFunctionInRange(f PolarFunction, start, end float64, col color.Color, ch chan struct {}) {
@@ -494,5 +518,5 @@ func (g *Graph) DrawPolarFunctionWithColor(f PolarFunction, col color.Color) {
 }
 
 func (g *Graph) DrawPolarFunction(f PolarFunction) {
-    g.DrawPolarFunctionWithColor(f, RelationColor)
+    g.DrawPolarFunctionWithColor(f, g.RelationColor)
 }

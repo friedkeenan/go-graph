@@ -4,6 +4,7 @@ import (
     "os"
     "fmt"
     "log"
+    "image/color"
 )
 
 func main() {
@@ -27,16 +28,16 @@ func main() {
     g.DrawGrid()
 
     for i := 3; i < len(os.Args); i++ {
-        col := RelationColor
+        var col color.Color = g.RelationColor
         arg_swallowed := false
 
         if i < len(os.Args) - 1 && os.Args[i + 1][0] == '#' {
-            _, err = fmt.Sscanf(os.Args[i + 1], "#%02x%02x%02x", &col.R, &col.G, &col.B)
+            var r, g, b uint8
+            _, err = fmt.Sscanf(os.Args[i + 1], "#%02x%02x%02x", &r, &g, &b)
 
             if err == nil {
+                col = color.RGBA{r, g, b, 0xFF}
                 arg_swallowed = true
-            } else {
-                col = RelationColor
             }
         }
 
