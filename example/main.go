@@ -5,6 +5,7 @@ import (
     "fmt"
     "log"
     "image/color"
+    "github.com/friedkeenan/gograph"
 )
 
 func main() {
@@ -24,7 +25,7 @@ func main() {
 
     _, err = fmt.Sscanf(os.Args[2], "%v", &scale)
 
-    g := NewGraph(NewArea(x0, y0, x1, y1), scale)
+    g := gograph.NewGraph(gograph.NewArea(x0, y0, x1, y1), scale)
     g.DrawGrid()
 
     for i := 3; i < len(os.Args); i++ {
@@ -41,20 +42,20 @@ func main() {
             }
         }
 
-        expr, err := Eval(os.Args[i])
+        expr, err := gograph.Eval(os.Args[i])
         if err != nil {
             log.Fatal(err)
         }
 
         switch expr.(type) {
-            case Function:
-                g.DrawFunctionWithColor(expr.(Function), col)
+            case gograph.Function:
+                g.DrawFunctionWithColor(expr.(gograph.Function), col)
 
-            case PolarFunction:
-                g.DrawPolarFunctionWithColor(expr.(PolarFunction), col)
+            case gograph.PolarFunction:
+                g.DrawPolarFunctionWithColor(expr.(gograph.PolarFunction), col)
 
-            case Relation:
-                g.DrawRelationWithColor(expr.(Relation), col)
+            case gograph.Relation:
+                g.DrawRelationWithColor(expr.(gograph.Relation), col)
         }
 
         if arg_swallowed {

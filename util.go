@@ -1,4 +1,4 @@
-package main
+package gograph
 
 import "image/color"
 
