@@ -9,30 +9,109 @@ import (
 )
 
 const (
+    /*
+        The maximum chunk size that goroutines
+        will use for drawing relations and functions
+    */
     ChunkSize = 64
+
+    /*
+        The maximum angle size that goroutines
+        will use for drawing polar functions
+    */
     AngleSize = math.Pi / 4
+
+    /*
+        The angle step that goroutines will increment
+        the angle by when drawing polar functions
+    */
     AngleStep = AngleSize / 100
 )
 
 var (
+    /* The default graph background color */
     DefaultBackgroundColor = color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
+
+    /* The default graph axis color */
     DefaultAxisColor       = color.RGBA{0xFF, 0x00, 0x00, 0xFF}
+
+    /* The default graph grid color */
     DefaultGridColor       = color.RGBA{0xE0, 0xE0, 0xE0, 0xFF}
+
+    /* The default graph relation color */
     DefaultRelationColor   = color.RGBA{0x00, 0x00, 0x00, 0xFF}
 )
 
+/* A coordinate on a graph */
 type Coord struct {
     X, Y float64
 }
 
+/*
+    A function that takes in a coordinate
+    and outputs one of the following types:
+    
+    A bool to indicate that the coordinate should filled in.
+    This is what you want for relations that are of a similar
+    form as "f(x, y) <= g(x, y)".
+
+    A float64 that indicates the return of a function that
+    needs to equal zero to be drawn. This is what you want
+    for relations that are of a similar form as "f(x, y) == g(x, y)"
+    but slightly modified to look like "f(x, y) - g(x, y) == 0".
+    This is because very rarely will any coordinate the relation
+    is called with be exactly what you need to make it true, and
+    so the DrawRelation function compares the signs of the returned
+    values of the surrounding coordinates and if there is a difference
+    in the signs of said values, and the relation is continuous, then
+    we know that the returned value would equal zero somewhere
+    between those coordinates.
+
+    An error that indicates the current chunk should stop
+    being drawn immediately.
+*/
 type Relation func (c *Coord) interface{}
+
+/*
+    A function that takes in an x value
+    and returns a y value. This is what
+    you want for relations of the form
+    "y == f(x)" as it will be drawn faster
+    and more accurately than using the
+    Relation version.
+*/
 type Function func (x float64) float64
+
+/*
+    A function that takes in a theta value
+    and returns a radius value. This is what
+    you want for relations of the form
+    "r == f(theta)" as it will be drawn faster
+    and more accurately than using the
+    Relation version.
+*/
 type PolarFunction func (theta float64) float64
 
+/*
+    A function that takes is a complex number
+    and returns a complex number. This is used
+    to treat a graph as the complex plane and
+    then move the coordinates that correspond
+    to the input to the return value of the ComplexRelation.
+*/
 type ComplexRelation func (z complex128) complex128
 
+/*
+    A function that takes in a coordinate and
+    returns the derivate of a function at that point
+*/
 type DifferentialFunction func (c *Coord) float64
 
+/*
+    An area in coordinate space. To work nicely,
+    Pos0 must be above and to the left (lower x
+    value and higher y value) of Pos1.
+*/
 type Area struct {
     Pos0, Pos1 *Coord
 }
