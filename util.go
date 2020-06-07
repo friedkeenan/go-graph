@@ -3,14 +3,14 @@ package gograph
 import "image/color"
 
 type RGBA16 struct {
-    r, g, b, a uint16
+    R, G, B, A uint16
 }
 
 func (c RGBA16) RGBA() (r, g, b, a uint32) {
-    r = uint32(float64(c.r) * float64(c.a) / 0xFFFF)
-    g = uint32(float64(c.g) * float64(c.a) / 0xFFFF)
-    b = uint32(float64(c.b) * float64(c.a) / 0xFFFF)
-    a = uint32(c.a)
+    r = uint32(float64(c.R) * float64(c.A) / 0xFFFF)
+    g = uint32(float64(c.G) * float64(c.A) / 0xFFFF)
+    b = uint32(float64(c.B) * float64(c.A) / 0xFFFF)
+    a = uint32(c.A)
 
     return
 }

@@ -19,13 +19,18 @@ func main() {
         log.Fatal(err)
     }
 
-    if x1 < x0 || y1 > y0 {
-        log.Fatal("Invalid bounds")
+    area, err := gograph.NewArea(x0, y0, x1, y1)
+    if err != nil {
+        log.Fatal(err)
     }
 
     _, err = fmt.Sscanf(os.Args[2], "%v", &scale)
 
-    g := gograph.NewGraph(gograph.NewArea(x0, y0, x1, y1), scale)
+    g, err := gograph.NewGraph(area, scale)
+    if err != nil {
+        log.Fatal(err)
+    }
+
     g.DrawGrid()
 
     for i := 3; i < len(os.Args); i++ {

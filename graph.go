@@ -107,6 +107,8 @@ type ComplexRelation func (z complex128) complex128
 */
 type DifferentialFunction func (c *Coord) float64
 
+type InvalidAreaError struct{}
+
 /*
     An area in coordinate space. To work nicely,
     Pos0 must be above and to the left (lower x
@@ -115,6 +117,8 @@ type DifferentialFunction func (c *Coord) float64
 type Area struct {
     Pos0, Pos1 *Coord
 }
+
+type InvalidScaleError struct{}
 
 type Graph struct {
     Bounds *Area
@@ -203,8 +207,21 @@ func (f PolarFunction) ToRelation() Relation {
     }
 }
 
-func NewArea(x0, y0, x1, y1 float64) *Area {
-    return &Area{NewCoord(x0, y0), NewCoord(x1, y1)}
+func (e InvalidAreaError) Error() string {
+    return "Invalid area"
+}
+
+func NewArea(x0, y0, x1, y1 float64) (*Area, error) {
+    if x0 >= x1 || y0 <= y1 {
+        return nil, InvalidAreaError{}
+    }
+
+    c0, c1 := NewCoord(x0, y0), NewCoord(x1, y1)
+    if !c0.IsValid() || !c1.IsValid() {
+        return nil, InvalidAreaError{}
+    }
+
+    return &Area{c0, c1}, nil
 }
 
 func (a *Area) Width() float64 {
@@ -235,7 +252,15 @@ func (a *Area) Contains(c *Coord) bool {
     return a.Pos0.X <= c.X && c.X < a.Pos1.X && a.Pos0.Y >= c.Y && c.Y > a.Pos1.Y
 }
 
-func NewGraphWithColors(bounds *Area, scale float64, bg_col, rel_col, axis_col, grid_col color.Color) *Graph {
+func (e InvalidScaleError) Error() string {
+    return "Invalid scale"
+}
+
+func NewGraphWithColors(bounds *Area, scale float64, bg_col, rel_col, axis_col, grid_col color.Color) (*Graph, error) {
+    if scale <= 0 {
+        return nil, InvalidScaleError{}
+    }
+
     g := &Graph{}
 
     g.Bounds = bounds
@@ -252,10 +277,10 @@ func NewGraphWithColors(bounds *Area, scale float64, bg_col, rel_col, axis_col, 
         }
     }
 
-    return g
+    return g, nil
 }
 
-func NewGraph(bounds *Area, scale float64) *Graph {
+func NewGraph(bounds *Area, scale float64) (*Graph, error) {
     return NewGraphWithColors(bounds, scale, DefaultBackgroundColor, DefaultRelationColor, DefaultAxisColor, DefaultGridColor)
 }
 
